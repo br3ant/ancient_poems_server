@@ -15,6 +15,21 @@ class Author(Model):
         database = db
 
 
+class Poem(Model):
+    id = CharField(primary_key=True)
+    author = CharField()
+    paragraphs = CharField(null=True, default='')
+    rhythmic = CharField(null=True, default='')
+    title = CharField(null=True, default='')
+    chapter = CharField(null=True, default='')
+    tags = CharField(null=True, default='')
+    prologue = CharField(null=True, default='')
+    dynasty = CharField()
+
+    class Meta:
+        database = db
+
+
 class Word(Model):
     id = AutoField(primary_key=True)
     ci = CharField(null=True, default='')
