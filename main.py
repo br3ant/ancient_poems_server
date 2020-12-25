@@ -13,7 +13,8 @@ def read_root():
 @app.get("/getPoems")
 def get_poems(dynasty: str = None, page: int = 1, limit: int = 10):
     if dynasty:
-        return response.SuccessResponse(f'dynasty= {dynasty} page={page} limit={limit}')
+        values = database_helper.query_poems(dynasty, page, limit)
+        return response.SuccessResponse(list(values))
     else:
         return response.ErrorResponse(0, 'dynasty 不能为空')
 
