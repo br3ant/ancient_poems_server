@@ -1,23 +1,26 @@
 import json
 import os
-import uuid
 from models.model import *
 
 word_data = {
-    'word_ci': 'ci.json',
-    'word_idiom': 'idiom.json'
+    'word_ci': '/Users/houqiqi/Documents/WorkSpace/Python/chinese-xinhua-master/data/ci.json',
+    'word_idiom': '/Users/houqiqi/Documents/WorkSpace/Python/chinese-xinhua-master/data/idiom.json',
+    'word_xiehouyu': '/Users/houqiqi/Documents/WorkSpace/Python/chinese-xinhua-master/data/xiehouyu.json',
+    'word_word': '/Users/houqiqi/Documents/WorkSpace/Python/chinese-xinhua-master/data/word.json',
 }
 
 author_data = {
-    'song_poem': 'authors.song.json',
-    'song_ci': 'author.song.json',
-    'tang_poem': 'authors.tang.json',
+    'song_poem': '/Users/houqiqi/Documents/WorkSpace/Python/chinese-poetry-master/json/authors.song.json',
+    'song_ci': '/Users/houqiqi/Documents/WorkSpace/Python/chinese-poetry-master/ci/author.song.json',
+    'tang_poem': '/Users/houqiqi/Documents/WorkSpace/Python/chinese-poetry-master/json/authors.tang.json',
 }
 
 poem_data = {
     'song_ci': '/Users/houqiqi/Documents/WorkSpace/Python/chinese-poetry-master/ci',
     'tang_poem': '/Users/houqiqi/Documents/WorkSpace/Python/chinese-poetry-master/json',
-    'song_poem': '/Users/houqiqi/Documents/WorkSpace/Python/chinese-poetry-master/json'
+    'song_poem': '/Users/houqiqi/Documents/WorkSpace/Python/chinese-poetry-master/json',
+    'yuan_qu': '/Users/houqiqi/Documents/WorkSpace/Python/chinese-poetry-master/yuanqu/yuanqu.json',
+    'shi_jing': '/Users/houqiqi/Documents/WorkSpace/Python/chinese-poetry-master/shijing/shijing.json',
 }
 
 
@@ -38,26 +41,32 @@ def init_database():
 
 def init_author(author_type, json_name):
     print(f'开始初始化 author_type = {author_type}')
-    with open(os.path.join('data', json_name), 'r') as f:
+    with open(json_name, 'r') as f:
         authors = json.load(f)
         with db.atomic():
             for author in authors:
                 try:
-                    Author().create(**author, dynasty=author_type)
+                    Author().create(dynasty=author_type, name=author.get('name'), desc=author.get('desc'),
+                                    description=author.get('description'),
+                                    short_description=author.get('short_description'))
                 except IntegrityError:
-                    Author().replace(**author, dynasty=author_type)
+                    pass
 
 
 def init_word(word_type, json_name):
     print(f'开始初始化 word_type = {word_type}')
-    with open(os.path.join('data', json_name), 'r') as f:
+    with open(json_name, 'r') as f:
         words = json.load(f)
         with db.atomic():
             for word in words:
                 try:
-                    Word().create(**word, word_type=word_type)
+                    Word().create(word_type=word_type, ci=word.get('ci'), explanation=word.get('explanation'),
+                                  example=word.get('example'), pinyin=word.get('pinyin'), word=word.get('word'),
+                                  abbreviation=word.get('abbreviation'), riddle=word.get('riddle'),
+                                  answer=word.get('answer'),
+                                  derivation=word.get('derivation'), )
                 except IntegrityError:
-                    Word().replace(**word, word_type=word_type)
+                    pass
 
 
 def init_poem(poem_type, path):
@@ -74,6 +83,8 @@ def init_poem(poem_type, path):
         for json_file in os.listdir(path):
             if 'poet.song' in json_file:
                 add_poems(poem_type, os.path.join(path, json_file))
+    elif poem_type == 'yuan_qu' or poem_type == 'shi_jing':
+        add_poems(poem_type, path)
 
 
 def add_poems(poem_type, json_file):
@@ -82,12 +93,13 @@ def add_poems(poem_type, json_file):
         with db.atomic():
             for poem in poems:
                 try:
-                    if 'song_ci' == poem_type:
-                        Poem().create(**poem, dynasty=poem_type, id=uuid.uuid1())
-                    else:
-                        Poem().create(**poem, dynasty=poem_type)
+                    Poem().create(dynasty=poem_type, author=poem.get('author'), paragraphs=poem.get('paragraphs'),
+                                  rhythmic=poem.get('rhythmic'),
+                                  title=poem.get('title'), chapter=poem.get('chapter'), tags=poem.get('tags'),
+                                  prologue=poem.get('prologue'),
+                                  content=poem.get('content'), section=poem.get('section'))
                 except IntegrityError:
-                    Poem().replace(**poem, dynasty=poem_type)
+                    pass
 
 
 def trans_db_model(value):
@@ -96,7 +108,7 @@ def trans_db_model(value):
 
 def query_words(word_type, page, limit):
     try:
-        return Word.select(Word.ci, Word.explanation).where(Word.word_type == word_type).paginate(page, limit).dicts()
+        return Word.select().where(Word.word_type == word_type).paginate(page, limit).dicts()
     except Exception as e:
         print(f"query ERROR e = {e}")
         return None
@@ -116,3 +128,15 @@ def query_poems(dynasty, page, limit):
     except Exception as e:
         print(f"query ERROR e = {e}")
         return None
+
+
+def query_authors(dynasty, page, limit):
+    try:
+        return Author.select().where(Author.dynasty == dynasty).paginate(page, limit).dicts()
+    except Exception as e:
+        print(f"query ERROR e = {e}")
+        return None
+
+
+def query_poems_count():
+    return Poem.select().limit(10).dicts()

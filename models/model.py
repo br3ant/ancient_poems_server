@@ -4,7 +4,7 @@ db = SqliteDatabase('ancient.db')
 
 
 class Author(Model):
-    id = CharField(primary_key=True)
+    id = AutoField(primary_key=True)
     name = CharField()
     description = CharField(null=True, default='')
     short_description = CharField(null=True, default='')
@@ -16,14 +16,16 @@ class Author(Model):
 
 
 class Poem(Model):
-    id = CharField(primary_key=True)
-    author = CharField()
+    id = AutoField(primary_key=True)
+    author = CharField(null=True, default='未知')
     paragraphs = CharField(null=True, default='')
     rhythmic = CharField(null=True, default='')
     title = CharField(null=True, default='')
     chapter = CharField(null=True, default='')
     tags = CharField(null=True, default='')
     prologue = CharField(null=True, default='')
+    content = CharField(null=True, default='')
+    section = CharField(null=True, default='')
     dynasty = CharField()
 
     class Meta:
