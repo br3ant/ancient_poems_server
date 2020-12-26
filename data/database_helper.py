@@ -1,6 +1,7 @@
 import json
 import os
 from models.model import *
+import time
 
 word_data = {
     'word_ci': '/Users/houqiqi/Documents/WorkSpace/Python/chinese-xinhua-master/data/ci.json',
@@ -41,36 +42,43 @@ def init_database():
 
 def init_author(author_type, json_name):
     print(f'开始初始化 author_type = {author_type}')
+    start_time = time.time()
     with open(json_name, 'r') as f:
         authors = json.load(f)
+
         with db.atomic():
-            for author in authors:
-                try:
-                    Author().create(dynasty=author_type, name=author.get('name'), desc=author.get('desc'),
-                                    description=author.get('description'),
-                                    short_description=author.get('short_description'))
-                except IntegrityError:
-                    pass
+            values = map(lambda author: Author(dynasty=author_type, name=author.get('name'), desc=author.get('desc'),
+                                               description=author.get('description'),
+                                               short_description=author.get('short_description')), authors)
+            try:
+                Author().bulk_create(values, 100)
+            except IntegrityError:
+                pass
+    print(f'{author_type} 用时{format_time(time.time() - start_time)}')
 
 
 def init_word(word_type, json_name):
     print(f'开始初始化 word_type = {word_type}')
+    start_time = time.time()
     with open(json_name, 'r') as f:
         words = json.load(f)
         with db.atomic():
-            for word in words:
-                try:
-                    Word().create(word_type=word_type, ci=word.get('ci'), explanation=word.get('explanation'),
-                                  example=word.get('example'), pinyin=word.get('pinyin'), word=word.get('word'),
-                                  abbreviation=word.get('abbreviation'), riddle=word.get('riddle'),
-                                  answer=word.get('answer'),
-                                  derivation=word.get('derivation'), )
-                except IntegrityError:
-                    pass
+            values = map(lambda word: Word(word_type=word_type, ci=word.get('ci'), explanation=word.get('explanation'),
+                                           example=word.get('example'), pinyin=word.get('pinyin'),
+                                           word=word.get('word'),
+                                           abbreviation=word.get('abbreviation'), riddle=word.get('riddle'),
+                                           answer=word.get('answer'),
+                                           derivation=word.get('derivation')), words)
+            try:
+                Word().bulk_create(values, 100)
+            except IntegrityError:
+                pass
+    print(f'{word_type} 用时{format_time(time.time() - start_time)}')
 
 
 def init_poem(poem_type, path):
     print(f'开始初始化 poem_type = {poem_type}')
+    start_time = time.time()
     if poem_type == 'song_ci':
         for json_file in os.listdir(path):
             if 'ci.song' in json_file:
@@ -85,21 +93,27 @@ def init_poem(poem_type, path):
                 add_poems(poem_type, os.path.join(path, json_file))
     elif poem_type == 'yuan_qu' or poem_type == 'shi_jing':
         add_poems(poem_type, path)
+    print(f'{poem_type} 用时{format_time(time.time() - start_time)}')
 
 
 def add_poems(poem_type, json_file):
     with open(json_file, 'r') as f:
         poems = json.load(f)
         with db.atomic():
-            for poem in poems:
-                try:
-                    Poem().create(dynasty=poem_type, author=poem.get('author'), paragraphs=poem.get('paragraphs'),
+            values = map(
+                lambda poem: Poem(dynasty=poem_type, author=poem.get('author'), paragraphs=poem.get('paragraphs'),
                                   rhythmic=poem.get('rhythmic'),
                                   title=poem.get('title'), chapter=poem.get('chapter'), tags=poem.get('tags'),
                                   prologue=poem.get('prologue'),
-                                  content=poem.get('content'), section=poem.get('section'))
-                except IntegrityError:
-                    pass
+                                  content=poem.get('content'), section=poem.get('section')), poems)
+            try:
+                Poem().bulk_create(values, 100)
+            except IntegrityError:
+                pass
+
+
+def format_time(m_time):
+    return round(m_time, 3)
 
 
 def trans_db_model(value):
